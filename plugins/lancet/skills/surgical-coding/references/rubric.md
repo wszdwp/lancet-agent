@@ -69,6 +69,24 @@ Start with one small bug fix and its follow-up round. Keep failed and blocked
 attempts. Do not average away a failed case or treat missing evidence as a pass.
 This is the initial feedback loop, not proof of general capability.
 
+## Automated evaluation
+
+The repository CI uses the same cases and criteria with fixed behavior checks
+and a separate fresh-context Copilot reviewer. It retains diffs, actual tool
+evidence, every user-visible response, and criterion-level judgments. A failed
+behavior check or out-of-scope change cannot be rescued by reviewer approval.
+Every reply must be reviewed; missing evidence fails the CI gate.
+
+The unavailable-verification scenario succeeds as a test only when surgical
+coding is explicitly blocked and replies and guardrails pass. A missing model
+credential, failed CLI call, or unknown safety evidence is an infrastructure or
+evaluation failure, not that intentional blocker.
+
+Model judgments are probabilistic regression signals, not independent human
+sign-off. The adapter runs Copilot only; standalone portability does not imply
+tested behavior in Claude or OpenAI hosts. The installed skill remains
+instruction-only and includes no CI runtime.
+
 ## Review record
 
 Keep this JSON inside a Markdown evaluation record, not in every agent reply.

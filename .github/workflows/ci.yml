@@ -1,0 +1,70 @@
+name: Lancet CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lancet-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Package and evaluation contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Validate package, rubric, and case definitions
+        run: python3 -B ci/evaluate.py validate
+      - name: Test all fixed fixtures and fail-closed evaluation rules
+        run: python3 -B -m unittest discover -s ci -p 'test_*.py' -v
+
+  behavior:
+    name: Rubric and behavior cases
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: behavior-evaluation
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Refuse secret-bearing evaluation of untrusted fork code
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          echo "::error::Behavior evaluation is blocked for fork pull requests. Review the changes, then evaluate a trusted branch instead."
+          exit 1
+      - name: Require authorized Copilot credentials
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        run: |
+          if [ -z "$COPILOT_GITHUB_TOKEN" ]; then
+            echo "::error::Behavior evaluation is blocked. Configure COPILOT_GITHUB_TOKEN in the behavior-evaluation environment."
+            exit 1
+          fi
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Install pinned Copilot CLI
+        run: npm install --global @github/copilot@1.0.105
+      - name: Evaluate six cases with fixed checks and a fresh-context rubric reviewer
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          COPILOT_HOME: ${{ runner.temp }}/lancet-copilot
+        run: python3 -B ci/evaluate.py evaluate --output ci-results
+      - name: Retain evaluation evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: lancet-behavior-${{ github.sha }}
+          path: ci-results/
+          if-no-files-found: warn
+          retention-days: 7

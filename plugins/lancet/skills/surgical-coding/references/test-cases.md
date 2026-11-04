@@ -1,9 +1,11 @@
 # MVP evaluation cases
 
-These are JSON-formatted manual scenarios, not executable tests or shipped
-repositories. Before a run, prepare the stated setup in a target repository and
-map allowed changes and behavior checks to actual files and existing commands.
-Keep that setup fixed when comparing instruction revisions.
+These JSON-formatted scenarios support manual review and repository CI.
+They are not executable code or shipped target repositories. For manual runs,
+prepare the stated setup and map checks to actual files and existing commands.
+The repository's separate CI adapter creates fixed Python fixtures from these
+same checks; it is not included in the installed skill. Keep the setup fixed
+when comparing instruction revisions.
 
 The shared expectations apply to every case and every user-visible response.
 Expected outcomes describe a correctly handled scenario, not recorded results.

@@ -8,13 +8,18 @@ plain-English replies that are short and complete each round.
 Version **0.1.0** packages one portable skill for GitHub Copilot, OpenAI
 Codex/ChatGPT, and Claude Code. The workflow and evaluation cases are Markdown;
 only plugin and marketplace metadata use JSON. There is no runtime code, hook,
-MCP server, or model-training setup. The host provides tools and permissions.
+MCP server, or model-training setup in the installed plugin. The host provides
+tools and permissions. Repository-only Python tooling runs the CI evaluations.
 
 ## Structure
 
 ```text
 lancet/
+  .github/workflows/ci.yml               # Package and behavior gates
   .agents/plugins/marketplace.json       # Local OpenAI plugin catalog
+  ci/
+    evaluate.py                         # CI-only fixtures and rubric runner
+    test_evaluate.py                    # Deterministic guard regression tests
   plugins/lancet/
     plugin.json                         # Portable Copilot/OpenAI manifest
     .claude-plugin/plugin.json           # Claude Code compatibility manifest
@@ -112,3 +117,42 @@ and model/tool configuration. Record failed and blocked attempts too. Improve
 [SKILL.md](./plugins/lancet/skills/surgical-coding/SKILL.md) from observed failures, not smaller
 diffs or shorter replies alone. Keep all plugin manifests' names, versions,
 and descriptions in sync when releasing an update.
+
+## CI guard
+
+[Lancet CI](./.github/workflows/ci.yml) runs on pull requests, pushes to `main`,
+and manual dispatch. The first job checks package contracts, all six case
+definitions, fixed Python fixtures, and fail-closed evaluation rules without
+model credentials.
+
+The second job runs the actual Copilot skill on isolated fixtures, checks the
+result with fixed behavior assertions, and uses a separate fresh-context model
+session to apply the rubric to the diff, tool evidence, and every reply. Any
+failed case fails the job. The intentionally unavailable verification case must
+be reported as blocked, not fabricated as a pass. Authentication errors or
+missing evidence cannot satisfy that expected blocker.
+
+Create a GitHub Actions environment named `behavior-evaluation`, restrict it to
+reviewed/trusted revisions, configure required reviewers, and add an environment
+secret named `COPILOT_GITHUB_TOKEN` with permission to make Copilot requests.
+The normal Actions `GITHUB_TOKEN` is not a substitute. Missing credentials fail
+the behavior gate explicitly. Fork pull requests never receive this secret and
+are blocked from behavior evaluation.
+
+Require both **Package and evaluation contracts** and **Rubric and behavior
+cases** in branch protection or a ruleset. Protect CI/evaluator changes through
+review too. Workflow files alone do not enable merge protection; model
+evaluations consume Copilot quota and are probabilistic, not human sign-off or
+proof that all three hosts behave identically.
+
+Run the secret-free checks locally:
+
+```sh
+python3 -B ci/evaluate.py validate
+python3 -B -m unittest discover -s ci -p 'test_*.py' -v
+```
+
+With an authenticated Copilot CLI 1.0.105, run `python3 -B ci/evaluate.py evaluate`
+or add `--case bug-fix` for one scenario. Results go to the ignored `ci-results/`
+directory; Actions retains evidence for seven days, including on failure. The
+case definitions remain JSON inside Markdown; no JavaScript source is added.
