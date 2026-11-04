@@ -1,0 +1,17 @@
+{
+  "name": "lancet-local",
+  "plugins": [
+    {
+      "name": "lancet",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lancet"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

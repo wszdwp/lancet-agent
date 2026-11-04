@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "lancet",
+  "version": "0.1.0",
+  "description": "Precision over complexity: surgical coding with short, complete replies in plain English."
+}
