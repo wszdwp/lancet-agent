@@ -34,6 +34,18 @@ def passing_review(response_ids=("reply-1",)):
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_ci_uses_short_lived_copilot_authentication(self):
+        workflow = (evaluate.ROOT / ".github/workflows/ci.yml").read_text()
+        global_settings, jobs = workflow.split("\njobs:", 1)
+        behavior = jobs.split("\n  behavior:", 1)[1]
+        self.assertNotIn("copilot-requests", global_settings)
+        self.assertRegex(
+            behavior,
+            r"permissions:\s*\n\s+contents: read\s*\n\s+copilot-requests: write",
+        )
+        self.assertIn("GITHUB_TOKEN: ${{ github.token }}", behavior)
+        self.assertNotIn("secrets.COPILOT_GITHUB_TOKEN", workflow)
+
     def test_package_contract(self):
         self.assertEqual(len(evaluate.validate()), 6)
 

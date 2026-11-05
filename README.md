@@ -132,12 +132,17 @@ failed case fails the job. The intentionally unavailable verification case must
 be reported as blocked, not fabricated as a pass. Authentication errors or
 missing evidence cannot satisfy that expected blocker.
 
-Create a GitHub Actions environment named `behavior-evaluation`, restrict it to
-reviewed/trusted revisions, configure required reviewers, and add an environment
-secret named `COPILOT_GITHUB_TOKEN` with permission to make Copilot requests.
-The normal Actions `GITHUB_TOKEN` is not a substitute. Missing credentials fail
-the behavior gate explicitly. Fork pull requests never receive this secret and
-are blocked from behavior evaluation.
+The behavior job uses GitHub's short-lived built-in `GITHUB_TOKEN`, with
+`copilot-requests: write` granted only to that job. No personal-token secret is
+required. In this personally owned repository, requests use the owner's Copilot
+entitlements. Organization-owned copies must enable the corresponding Copilot
+CLI billing policy. See
+[GitHub's authentication guide](https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli-in-actions).
+
+Use the GitHub Actions environment `behavior-evaluation` to restrict evaluation
+to reviewed/trusted revisions and configure required reviewers. Fork pull
+requests remain blocked from privileged behavior evaluation. Authentication,
+entitlement, or quota errors fail the gate; they are never treated as passes.
 
 Require both **Package and evaluation contracts** and **Rubric and behavior
 cases** in branch protection or a ruleset. Protect CI/evaluator changes through
