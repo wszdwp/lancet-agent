@@ -153,6 +153,27 @@ class EvaluationTests(unittest.TestCase):
         self.assertNotIn("apiCallId", kept[0]["data"])
         self.assertEqual(kept[1]["data"]["toolName"], "bash")
 
+    def test_bad_progress_reply_cannot_be_rescued_by_a_good_final_reply(self):
+        events = [
+            {"type": "assistant.message", "data": {
+                "content": "I broke the code.", "phase": "commentary",
+            }},
+            {"type": "assistant.message", "data": {
+                "content": "Fixed and tested.", "phase": "final_answer",
+            }},
+            {"type": "result", "exitCode": 0, "sessionId": "fixture-session"},
+        ]
+        _, replies, _ = evaluate.parse_events("\n".join(map(json.dumps, events)))
+        self.assertEqual(len(replies), 2)
+        review = passing_review(("progress", "final"))
+        review["replies"][0]["outcome"] = "revise"
+        review["outcome"] = "revise"
+        evaluate.parse_review(json.dumps(review), ["progress", "final"])
+        self.assertFalse(evaluate.scenario_passes(
+            {"id": "bug-fix", "expected_outcome": "pass"},
+            review, {"passed": True}, [],
+        ))
+
     def test_symlinks_are_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

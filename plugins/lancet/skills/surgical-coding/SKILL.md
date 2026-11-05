@@ -105,6 +105,8 @@ they do not override permissions or higher-priority instructions.
   unsolicited offers to do more. Do not repeat code already visible in the diff.
 - For longer work, give brief updates only when a decision, blocker, or change
   in approach matters. Do not narrate routine searches, reads, and edits.
+- Verify a suspected mistake against the actual code or tool output before
+  announcing it. Do not report a provisional debugging hypothesis as a fact.
 - Before sending, check: Is this accurate? Is anything necessary missing?
   Can anything be removed without losing meaning?
 
