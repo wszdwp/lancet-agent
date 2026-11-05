@@ -85,6 +85,16 @@ class EvaluationTests(unittest.TestCase):
             self.assertNotIn("app.average([])", evaluate.initial_tests(case))
             self.assertIn("app.average([])", evaluate.checks_source(case))
 
+    def test_clarification_fixture_does_not_reveal_the_missing_policy(self):
+        case = next(case for case in evaluate.load_cases() if case["id"] == "clarification")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "app.py").write_text(evaluate.FIXTURES["clarification"])
+            visible = evaluate.initial_tests(case)
+            self.assertTrue(evaluate.acceptance(root, visible)["passed"])
+            self.assertFalse(evaluate.acceptance(root, evaluate.checks_source(case))["passed"])
+            self.assertNotIn("abcdefghijklmnopqrst", visible)
+
     def test_known_failure_wins_over_unknown(self):
         review = passing_review()
         review["surgical_coding"]["outcome"] = "blocked"
@@ -164,6 +174,9 @@ class EvaluationTests(unittest.TestCase):
             command = popen.call_args.args[0]
             self.assertIn("--trust-folder", command)
             self.assertNotIn("--session-id", command)
+            self.assertIn("write(/fixture/app.py)", command)
+            self.assertIn("write(/fixture/test_app.py)", command)
+            self.assertNotIn("write", command)
             evaluate.copilot("follow-up", Path("/fixture"), "fixture-session")
             command = popen.call_args.args[0]
             self.assertIn("--resume", command)

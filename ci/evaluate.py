@@ -160,6 +160,9 @@ def initial_tests(case):
     checks = case["behavior_checks"]
     if case["id"] == "bug-fix":
         checks = [check for check in checks if check["input"] != []]
+    elif case["id"] == "clarification":
+        # Boundary examples would reveal the policy before the user supplies it.
+        checks = checks[:2]
     return checks_source({**case, "behavior_checks": checks})
 
 
@@ -222,7 +225,8 @@ def copilot(prompt, workspace, session_id=None, *, judge=False, blocked=False):
     if judge:
         command += ["--available-tools="]
     else:
-        command += ["--allow-tool", "write",
+        command += ["--allow-tool", f"write({workspace / 'app.py'})",
+                    "--allow-tool", f"write({workspace / 'test_app.py'})",
                     "--allow-tool", "shell(./verify)" if blocked else "shell(python3:*)"]
     with subprocess.Popen(
         command, cwd=workspace, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -312,6 +316,8 @@ def evaluate_case(case, output):
             prompt = (
                 "Use the surgical-coding skill in .github/skills/surgical-coding/SKILL.md. "
                 "Work only in this fixture. You may change app.py and test_app.py only. "
+                "Edit those files in place; do not create scratch files. "
+                f"Scope: {' '.join(case['allowed_changes'])} "
                 "Do not change names.py, verify, the skill, or any other file. "
                 "Do not commit, use the network, install tools, or run unrelated commands. "
                 f"Required verification command: {verification}. "
